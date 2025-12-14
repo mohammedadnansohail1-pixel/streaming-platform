@@ -1,6 +1,6 @@
 """Configuration loader - loads and merges config files."""
 
-import logging
+from core.utils.logging import get_logger
 from pathlib import Path
 from typing import Optional
 
@@ -10,7 +10,7 @@ from core.config.exceptions import ConfigNotFoundError, ConfigParseError
 from core.config.merger import deep_merge
 from core.secrets import SecretResolver
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Default paths relative to project root
 CONFIG_DIR = Path(__file__).parent.parent.parent / "config"

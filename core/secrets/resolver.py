@@ -1,16 +1,15 @@
 """Main secret resolver - resolves ${secret:KEY} patterns in config."""
 
 import re
-import logging
+from core.utils.logging import get_logger
 from typing import Any
 
-# Import backends to trigger registration
 # Import backends to trigger registration
 from core.secrets import env_backend, file_backend  # noqa: F401
 from core.secrets.registry import get_backend
 from core.secrets.exceptions import SecretBackendError
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 SECRET_PATTERN = re.compile(r"\$\{secret:([^}]+)\}")
 

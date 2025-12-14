@@ -2,10 +2,11 @@
 
 import functools
 import time
-import logging
 from typing import Callable, Type
 
-logger = logging.getLogger(__name__)
+from core.utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def log_time(func: Callable) -> Callable:

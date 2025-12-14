@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# Secrets - NEVER commit these
+.env
+.env.*
+secrets.yaml
+secrets.json
+*.pem
+*.key
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+checkpoints/
+logs/
+*.log
+data/
+output/
+
+# Jupyter
+.ipynb_checkpoints/

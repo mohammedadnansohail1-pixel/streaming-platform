@@ -1,0 +1,29 @@
+# Config & Validation
+pyyaml>=6.0
+pydantic>=2.0
+python-dotenv>=1.0
+
+# Kafka
+confluent-kafka>=2.3
+fastavro>=1.9
+
+# Spark
+pyspark>=3.5
+
+# ClickHouse
+clickhouse-connect>=0.7
+
+# Monitoring
+prometheus-client>=0.19
+
+# CLI
+click>=8.1
+
+# Testing
+pytest>=7.4
+pytest-cov>=4.1
+
+# Development
+black>=24.0
+ruff>=0.1
+pre-commit>=3.6

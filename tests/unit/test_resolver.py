@@ -169,8 +169,10 @@ class TestSecretResolverUnknownBackend:
 
         assert "Unknown backend" in str(exc_info.value)
 
-    def test_vault_not_implemented(self):
-        """Vault should raise NotImplementedError."""
+    def test_vault_not_registered(self):
+        """Unregistered backends should raise SecretBackendError."""
         # Act & Assert
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(SecretBackendError) as exc_info:
             SecretResolver(backend="vault")
+
+        assert "Unknown backend" in str(exc_info.value)

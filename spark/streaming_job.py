@@ -15,7 +15,6 @@ from pyspark.sql.functions import (
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, DoubleType
 from pyspark.sql.avro.functions import from_avro
-from spark.sinks import ClickHouseSink
 from core.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -253,27 +252,27 @@ class StreamingJob:
         self._queries.append(query)
         logger.info(f"Started memory query: {query_name}")
 
-    def write_clickhouse(
-        self, df: DataFrame, query_name: str, sink: ClickHouseSink
+    def write_foreach_batch(
+        self, df: DataFrame, batch_func: callable, query_name: str
     ) -> None:
-        """Write stream to ClickHouse using foreachBatch."""
+        """
+        Write stream using foreachBatch with custom function.
 
-        def write_batch(batch_df, batch_id):
-            if query_name == "page_view_events_per_minute":
-                sink.write_events_per_minute(batch_df, batch_id)
-            elif query_name == "active_users":
-                sink.write_active_users(batch_df, batch_id)
-
+        Args:
+            df: Streaming DataFrame
+            batch_func: Function(batch_df, batch_id) to process each batch
+            query_name: Name for the streaming query
+        """
         query = (
             df.writeStream.outputMode("update")
-            .foreachBatch(write_batch)
-            .option("checkpointLocation", f"{self.checkpoint_path}/{query_name}_ch")
+            .foreachBatch(batch_func)
+            .option("checkpointLocation", f"{self.checkpoint_path}/{query_name}")
             .trigger(processingTime=self.trigger_interval)
-            .queryName(f"{query_name}_clickhouse")
+            .queryName(query_name)
             .start()
         )
         self._queries.append(query)
-        logger.info(f"Started ClickHouse query: {query_name}")
+        logger.info(f"Started foreachBatch query: {query_name}")
 
     def run_aggregation_job(self, event_type: str, aggregation_name: str) -> None:
         """

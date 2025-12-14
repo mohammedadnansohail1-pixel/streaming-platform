@@ -1,0 +1,109 @@
+{
+  "dashboard": {
+    "title": "Streaming Platform",
+    "uid": "streaming-platform",
+    "tags": ["streaming", "kafka", "spark"],
+    "timezone": "browser",
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Events Produced/sec",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(events_produced_total[1m])",
+            "legendFormat": "{{event_type}} - {{status}}"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Produce Latency (p95)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(produce_latency_seconds_bucket[5m]))",
+            "legendFormat": "{{event_type}}"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Spark Batches/min",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(spark_batches_total[1m]) * 60",
+            "legendFormat": "{{query}}"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Spark Batch Duration (p95)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(spark_batch_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{query}}"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Spark Processing Rate",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "spark_processing_rows_per_sec",
+            "legendFormat": "{{query}}"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Spark Input Rate",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16},
+        "targets": [
+          {
+            "expr": "spark_input_rows_per_sec",
+            "legendFormat": "{{query}}"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Sink Writes/sec",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "targets": [
+          {
+            "expr": "rate(sink_writes_total[1m])",
+            "legendFormat": "{{sink}}/{{table}} - {{status}}"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Sink Rows Written",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "targets": [
+          {
+            "expr": "rate(sink_rows_total[1m])",
+            "legendFormat": "{{sink}}/{{table}}"
+          }
+        ]
+      }
+    ],
+    "schemaVersion": 38,
+    "version": 1
+  }
+}

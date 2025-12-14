@@ -1,0 +1,203 @@
+# ============================================================
+# E-COMMERCE DOMAIN CONFIGURATION
+# ============================================================
+
+domain: ecommerce
+version: "1.0"
+description: Real-time e-commerce analytics pipeline
+
+# ============================================================
+# ENTITY
+# ============================================================
+entity:
+  primary_key: user_id
+
+# ============================================================
+# EVENT TYPES
+# ============================================================
+event_types:
+  - name: page_view
+    description: User views a page
+    attributes:
+      - page_url
+      - page_title
+      - referrer
+    dimensions:
+      - device_type
+      - platform
+      - geo_country
+
+  - name: product_view
+    description: User views a product
+    attributes:
+      - product_id
+      - product_name
+      - product_category
+    metrics:
+      - product_price
+    dimensions:
+      - device_type
+      - platform
+      - geo_country
+
+  - name: add_to_cart
+    description: User adds product to cart
+    attributes:
+      - product_id
+      - product_name
+      - cart_id
+    metrics:
+      - quantity
+      - unit_price
+    dimensions:
+      - device_type
+      - platform
+
+  - name: remove_from_cart
+    description: User removes product from cart
+    attributes:
+      - product_id
+      - cart_id
+    metrics:
+      - quantity
+    dimensions:
+      - device_type
+
+  - name: purchase
+    description: User completes purchase
+    attributes:
+      - order_id
+      - payment_method
+    metrics:
+      - total_amount
+      - item_count
+    dimensions:
+      - currency
+      - device_type
+      - geo_country
+
+  - name: search
+    description: User searches for products
+    attributes:
+      - search_query
+    metrics:
+      - results_count
+    dimensions:
+      - device_type
+      - platform
+
+# ============================================================
+# AGGREGATIONS
+# ============================================================
+aggregations:
+  - name: events_per_minute
+    description: Count of events by type
+    type: count
+    window:
+      type: tumbling
+      duration: 1 minute
+    group_by:
+      - event_type
+
+  - name: active_users
+    description: Unique users in sliding window
+    type: count_distinct
+    field: entity_id
+    window:
+      type: sliding
+      duration: 5 minutes
+      slide: 1 minute
+
+  - name: revenue_per_hour
+    description: Total revenue per hour
+    type: sum
+    field: metrics.total_amount
+    filter: "event_type = 'purchase'"
+    window:
+      type: tumbling
+      duration: 1 hour
+    group_by:
+      - dimensions.currency
+
+  - name: top_products_viewed
+    description: Most viewed products
+    type: count
+    filter: "event_type = 'product_view'"
+    window:
+      type: tumbling
+      duration: 1 hour
+    group_by:
+      - attributes.product_id
+      - attributes.product_name
+
+  - name: cart_abandonment
+    description: Carts without purchase
+    type: count
+    filter: "event_type = 'add_to_cart'"
+    window:
+      type: tumbling
+      duration: 1 hour
+    group_by:
+      - entity_id
+
+  - name: avg_order_value
+    description: Average purchase amount
+    type: avg
+    field: metrics.total_amount
+    filter: "event_type = 'purchase'"
+    window:
+      type: tumbling
+      duration: 1 hour
+
+# ============================================================
+# ALERTS
+# ============================================================
+alerts:
+  metric_alerts:
+    - name: revenue_drop
+      description: Revenue dropped significantly
+      metric: revenue_per_hour
+      condition:
+        operator: less_than
+        value: 1000
+      severity: critical
+      cooldown: 5 minutes
+
+    - name: low_traffic
+      description: Very few events coming in
+      metric: events_per_minute
+      condition:
+        operator: less_than
+        value: 10
+      severity: warning
+      cooldown: 10 minutes
+
+  event_alerts:
+    - name: high_value_order
+      description: Large purchase detected
+      event_type: purchase
+      condition:
+        field: metrics.total_amount
+        operator: greater_than
+        value: 10000
+      severity: info
+
+# ============================================================
+# SYNTHETIC DATA GENERATOR
+# ============================================================
+synthetic:
+  events_per_second: 100
+  user_pool_size: 10000
+
+  patterns:
+    session_duration_avg_minutes: 8
+    cart_abandonment_rate: 0.70
+    purchase_conversion_rate: 0.03
+    peak_hours:
+      - 10
+      - 11
+      - 12
+      - 19
+      - 20
+      - 21
+    weekend_multiplier: 1.3

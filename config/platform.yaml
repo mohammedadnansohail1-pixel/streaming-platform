@@ -1,0 +1,137 @@
+# Platform Configuration
+# Infrastructure settings shared across all domains
+
+# ============================================================
+# SECRETS BACKEND
+# ============================================================
+secrets:
+  backend: env  # Options: env, file, vault, aws_secrets, azure_keyvault, gcp_secrets
+
+  # Backend-specific settings (uncomment as needed)
+  # file:
+  #   path: ./secrets.json
+  # vault:
+  #   address: https://vault.example.com
+  #   path: secret/streaming-platform
+
+# ============================================================
+# KAFKA
+# ============================================================
+kafka:
+  bootstrap_servers: ${secret:kafka_bootstrap_servers}
+
+  schema_registry:
+    url: ${secret:schema_registry_url}
+
+  producer:
+    acks: all
+    retries: 3
+    batch_size: 16384
+    linger_ms: 10
+    compression_type: lz4
+
+  consumer:
+    auto_offset_reset: earliest
+    enable_auto_commit: false
+    max_poll_records: 500
+
+  topics:
+    raw_events: "events.raw"
+    late_events: "events.late"
+    dead_letter: "events.dlq"
+
+# ============================================================
+# SPARK
+# ============================================================
+spark:
+  app_name: streaming-platform
+  master: local[*]
+
+  streaming:
+    trigger_interval: "10 seconds"
+    watermark_delay: "10 minutes"
+    output_mode: append
+
+  checkpoint:
+    enabled: true
+    path: ${secret:checkpoint_path}
+
+  backpressure:
+    enabled: true
+    initial_rate: 1000
+
+  resources:
+    executor_memory: 2g
+    executor_cores: 2
+    driver_memory: 1g
+
+# ============================================================
+# SINKS
+# ============================================================
+sinks:
+  # Primary sink - where aggregated data goes
+  primary:
+    type: clickhouse  # Options: clickhouse, postgresql, elasticsearch, mongodb, s3, kafka, console, file
+
+    clickhouse:
+      host: ${secret:clickhouse_host}
+      port: 8123
+      database: analytics
+      user: ${secret:clickhouse_user}
+      password: ${secret:clickhouse_password}
+
+      insert:
+        batch_size: 100000
+        flush_interval_seconds: 10
+        async: true
+
+      tables:
+        raw_events: events_raw
+        aggregations: events_aggregated
+
+      settings:
+        max_insert_threads: 4
+
+    postgresql:
+      host: ${secret:postgresql_host}
+      port: 5432
+      database: analytics
+      user: ${secret:postgresql_user}
+      password: ${secret:postgresql_password}
+
+      insert:
+        batch_size: 10000
+
+      tables:
+        raw_events: events_raw
+        aggregations: events_aggregated
+
+    elasticsearch:
+      hosts:
+        - ${secret:elasticsearch_host}
+      user: ${secret:elasticsearch_user}
+      password: ${secret:elasticsearch_password}
+
+      indices:
+        raw_events: events-raw
+        aggregations: events-aggregated
+
+  # Dead letter queue sink - where failed events go
+  dlq:
+    type: kafka  # Usually keep failures in Kafka for replay
+
+    kafka:
+      topic: events.dlq
+
+# ============================================================
+# MONITORING
+# ============================================================
+monitoring:
+  prometheus:
+    enabled: true
+    port: 9091
+    path: /metrics
+
+  logging:
+    level: INFO
+    format: json

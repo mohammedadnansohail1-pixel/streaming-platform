@@ -97,7 +97,7 @@ aggregations:
       type: tumbling
       duration: 1 minute
     group_by:
-      - event_type
+      - device_type
 
   - name: active_users
     description: Unique users in sliding window

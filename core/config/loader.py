@@ -8,7 +8,7 @@ import yaml
 
 from core.config.exceptions import ConfigNotFoundError, ConfigParseError
 from core.config.merger import deep_merge
-from core.secrets.resolver import SecretResolver
+from core.secrets import SecretResolver
 
 logger = logging.getLogger(__name__)
 

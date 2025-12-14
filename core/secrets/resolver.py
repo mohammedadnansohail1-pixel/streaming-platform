@@ -5,6 +5,8 @@ import logging
 from typing import Any
 
 # Import backends to trigger registration
+# Import backends to trigger registration
+from core.secrets import env_backend, file_backend  # noqa: F401
 from core.secrets.registry import get_backend
 from core.secrets.exceptions import SecretBackendError
 

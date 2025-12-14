@@ -1,4 +1,4 @@
-"""Quick test of config loading with actual config files."""
+"""Test full flow: config → schema → synthetic events."""
 
 import sys
 from pathlib import Path
@@ -6,68 +6,90 @@ from pathlib import Path
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+
+# Load .env file
 from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(project_root / ".env")
 
 from core.config.loader import ConfigLoader  # noqa: E402
 from core.schema.generator import SchemaGenerator  # noqa: E402
+from core.utils.logging import setup_logging  # noqa: E402
+from generators.synthetic import SyntheticDataGenerator  # noqa: E402
 
 
 def main():
+    # Setup logging
+    setup_logging(level="INFO")
+
+    print("=" * 60)
+    print("STEP 1: Load Configuration")
+    print("=" * 60)
+
     loader = ConfigLoader()
+    config = loader.load(domain="ecommerce")
 
-    print("=" * 50)
-    print("Loading ecommerce config (no environment)")
-    print("=" * 50)
+    print("✓ Loaded config for domain: ecommerce")
+    print(f"  Entity key: {config['entity']['primary_key']}")
+    print(f"  Event types: {[e['name'] for e in config['event_types']]}")
 
-    try:
-        config = loader.load(domain="ecommerce")
+    print("\n" + "=" * 60)
+    print("STEP 2: Generate Avro Schemas")
+    print("=" * 60)
 
-        print("\n✓ Loaded successfully!")
-        print(f"\nTop-level keys: {list(config.keys())}")
+    generator = SchemaGenerator()
+    schemas = generator.generate_all_schemas(config)
 
-        # Show some config values
-        if "kafka" in config:
-            print("\nKafka config:")
-            print(
-                f"  bootstrap_servers: {config['kafka'].get('bootstrap_servers', 'N/A')}"
-            )
+    print(f"✓ Generated {len(schemas)} schemas")
+    for name, schema in schemas.items():
+        fields = [f["name"] for f in schema["fields"]]
+        print(f"  - {name}: {len(fields)} fields")
 
-        if "entity" in config:
-            print(f"\nEntity: {config['entity']}")
+    print("\n" + "=" * 60)
+    print("STEP 3: Generate Synthetic Events")
+    print("=" * 60)
 
-        if "event_types" in config:
-            event_names = [e.get("name", "unknown") for e in config["event_types"]]
-            print(f"\nEvent types: {event_names}")
-        # Test schema generation
-        print("\n" + "=" * 50)
-        print("Generating Avro schemas")
-        print("=" * 50)
+    data_gen = SyntheticDataGenerator(config, schemas)
 
-        generator = SchemaGenerator()
-        schemas = generator.generate_all_schemas(config)
+    # Generate a few events of each type
+    print("\nSample events:")
+    for event_type in ["page_view", "purchase"]:
+        event = data_gen.generate_event(event_type)
+        print(f"\n{event_type}:")
+        for key, value in event.items():
+            print(f"  {key}: {value}")
 
-        print(f"\nGenerated {len(schemas)} schemas:")
-        for name, schema in schemas.items():
-            field_count = len(schema["fields"])
-            print(f"  - {name}: {field_count} fields")
+    print("\n" + "=" * 60)
+    print("STEP 4: Generate User Session")
+    print("=" * 60)
 
-        # Show one full schema as example
-        print("\nExample schema (page_view):")
-        print(generator.to_json(schemas["page_view"]))
+    session = data_gen.generate_user_session()
+    print(f"\n✓ Generated session with {len(session)} events:")
+    for event in session:
+        event_type = next(
+            (
+                name
+                for name, schema in schemas.items()
+                if set(f["name"] for f in schema["fields"]) == set(event.keys())
+            ),
+            "unknown",
+        )
+        print(f"  - {event_type} at {event['timestamp']}")
 
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-        import traceback
+    print("\n" + "=" * 60)
+    print("STEP 5: Batch Generation")
+    print("=" * 60)
 
-        traceback.print_exc()
-        return 1
+    events = list(data_gen.generate_events("page_view", count=100))
+    print(f"\n✓ Generated {len(events)} page_view events")
 
-    print("\n" + "=" * 50)
-    print("Health check")
-    print("=" * 50)
-    print(f"Config loader healthy: {loader.health_check()}")
+    # Show unique users
+    unique_users = set(e["user_id"] for e in events)
+    print(f"  Unique users: {len(unique_users)}")
+
+    print("\n" + "=" * 60)
+    print("✓ Full flow complete!")
+    print("=" * 60)
 
     return 0
 

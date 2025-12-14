@@ -15,7 +15,7 @@ from pyspark.sql.functions import (
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, DoubleType
 from pyspark.sql.avro.functions import from_avro
-
+from spark.sinks import ClickHouseSink
 from core.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -252,6 +252,28 @@ class StreamingJob:
         )
         self._queries.append(query)
         logger.info(f"Started memory query: {query_name}")
+
+    def write_clickhouse(
+        self, df: DataFrame, query_name: str, sink: ClickHouseSink
+    ) -> None:
+        """Write stream to ClickHouse using foreachBatch."""
+
+        def write_batch(batch_df, batch_id):
+            if query_name == "page_view_events_per_minute":
+                sink.write_events_per_minute(batch_df, batch_id)
+            elif query_name == "active_users":
+                sink.write_active_users(batch_df, batch_id)
+
+        query = (
+            df.writeStream.outputMode("update")
+            .foreachBatch(write_batch)
+            .option("checkpointLocation", f"{self.checkpoint_path}/{query_name}_ch")
+            .trigger(processingTime=self.trigger_interval)
+            .queryName(f"{query_name}_clickhouse")
+            .start()
+        )
+        self._queries.append(query)
+        logger.info(f"Started ClickHouse query: {query_name}")
 
     def run_aggregation_job(self, event_type: str, aggregation_name: str) -> None:
         """

@@ -1,14 +1,18 @@
-# Config & Validation
+# Core
 pyyaml>=6.0
 pydantic>=2.0
 python-dotenv>=1.0
 
-# Kafka
+# Kafka & Serialization
 confluent-kafka>=2.3
 fastavro>=1.9
+attrs
+httpx
+cachetools
+authlib
 
 # Spark
-pyspark>=3.5
+pyspark==3.5.1
 
 # ClickHouse
 clickhouse-connect>=0.7
@@ -27,7 +31,3 @@ pytest-cov>=4.1
 black>=24.0
 ruff>=0.1
 pre-commit>=3.6
-attrs
-httpx
-cachetools
-authlib

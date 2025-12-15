@@ -1,0 +1,233 @@
+# =============================================================================
+# STREAMING PLATFORM - HELM VALUES
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Global Settings
+# -----------------------------------------------------------------------------
+global:
+  environment: production
+  imagePullPolicy: IfNotPresent
+
+# -----------------------------------------------------------------------------
+# Streaming Platform App
+# -----------------------------------------------------------------------------
+app:
+  name: streaming-platform
+  replicaCount: 1
+
+  image:
+    repository: streaming-platform
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+  env:
+    KAFKA_BOOTSTRAP_SERVERS: "{{ .Release.Name }}-kafka:9092"
+    SCHEMA_REGISTRY_URL: "http://{{ .Release.Name }}-schema-registry:8081"
+    CLICKHOUSE_HOST: "{{ .Release.Name }}-clickhouse"
+    POSTGRESQL_HOST: "{{ .Release.Name }}-postgresql"
+
+  secrets:
+    clickhousePassword: streaming123
+    postgresqlPassword: streaming123
+
+# -----------------------------------------------------------------------------
+# Kafka
+# -----------------------------------------------------------------------------
+kafka:
+  enabled: true
+  replicaCount: 1
+
+  listeners:
+    client:
+      protocol: PLAINTEXT
+    interbroker:
+      protocol: PLAINTEXT
+
+  zookeeper:
+    enabled: true
+    replicaCount: 1
+
+  provisioning:
+    enabled: true
+    topics:
+      - name: events.page_view
+        partitions: 3
+        replicationFactor: 1
+      - name: events.purchase
+        partitions: 3
+        replicationFactor: 1
+      - name: cdc.public.customers
+        partitions: 1
+        replicationFactor: 1
+      - name: cdc.public.orders
+        partitions: 1
+        replicationFactor: 1
+
+# -----------------------------------------------------------------------------
+# Schema Registry
+# -----------------------------------------------------------------------------
+schemaRegistry:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: confluentinc/cp-schema-registry
+    tag: 7.5.0
+
+  service:
+    port: 8081
+
+  kafka:
+    bootstrapServers: "{{ .Release.Name }}-kafka:9092"
+
+# -----------------------------------------------------------------------------
+# Debezium (CDC)
+# -----------------------------------------------------------------------------
+debezium:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: debezium/connect
+    tag: "2.5"
+
+  service:
+    port: 8083
+
+  config:
+    groupId: "1"
+    configStorageTopic: debezium_configs
+    offsetStorageTopic: debezium_offsets
+    statusStorageTopic: debezium_statuses
+
+# -----------------------------------------------------------------------------
+# ClickHouse
+# -----------------------------------------------------------------------------
+clickhouse:
+  enabled: true
+  replicaCount: 1
+
+  auth:
+    username: default
+    password: streaming123
+
+  persistence:
+    enabled: true
+    size: 10Gi
+
+# -----------------------------------------------------------------------------
+# PostgreSQL
+# -----------------------------------------------------------------------------
+postgresql:
+  enabled: true
+
+  auth:
+    username: postgres
+    password: streaming123
+    database: streaming
+
+  primary:
+    persistence:
+      enabled: true
+      size: 5Gi
+
+    configuration: |
+      wal_level = logical
+      max_replication_slots = 4
+      max_wal_senders = 4
+
+# -----------------------------------------------------------------------------
+# Spark
+# -----------------------------------------------------------------------------
+spark:
+  enabled: true
+
+  master:
+    replicaCount: 1
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+
+  worker:
+    replicaCount: 2
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1000m"
+
+# -----------------------------------------------------------------------------
+# Prometheus
+# -----------------------------------------------------------------------------
+prometheus:
+  enabled: true
+
+  server:
+    persistentVolume:
+      enabled: true
+      size: 5Gi
+
+  alertmanager:
+    enabled: false
+
+# -----------------------------------------------------------------------------
+# Grafana
+# -----------------------------------------------------------------------------
+grafana:
+  enabled: true
+
+  adminUser: admin
+  adminPassword: streaming123
+
+  persistence:
+    enabled: true
+    size: 1Gi
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://{{ .Release.Name }}-prometheus-server
+          isDefault: true
+        - name: ClickHouse
+          type: grafana-clickhouse-datasource
+          url: http://{{ .Release.Name }}-clickhouse:8123
+
+# -----------------------------------------------------------------------------
+# Ingress
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: false
+  className: nginx
+
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+
+  hosts:
+    - host: streaming.local
+      paths:
+        - path: /grafana
+          service: grafana
+          port: 80
+        - path: /prometheus
+          service: prometheus-server
+          port: 80
+
+# -----------------------------------------------------------------------------
+# Service Account
+# -----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  name: streaming-platform
+  annotations: {}

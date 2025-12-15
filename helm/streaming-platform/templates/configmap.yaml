@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    app: {{ .Values.app.name }}
+    release: {{ .Release.Name }}
+data:
+  platform.yaml: |
+    kafka:
+      bootstrap_servers: {{ .Release.Name }}-kafka:9092
+      schema_registry:
+        url: http://{{ .Release.Name }}-schema-registry:8081
+      producer:
+        acks: all
+        retries: 3
+      consumer:
+        group_id: streaming-platform
+        auto_offset_reset: earliest
+
+    spark:
+      app_name: streaming-platform
+      master: spark://{{ .Release.Name }}-spark-master:7077
+      trigger_interval: 10 seconds
+      watermark:
+        delay: 10 minutes
+      checkpoint:
+        path: /data/checkpoints
+
+    sinks:
+      primary:
+        type: clickhouse
+        clickhouse:
+          host: {{ .Release.Name }}-clickhouse
+          port: 8123
+          database: analytics
+          user: default
+        postgresql:
+          host: {{ .Release.Name }}-postgresql
+          port: 5432
+          database: streaming
+          user: postgres
+
+    monitoring:
+      metrics_port: 8000
+      prometheus:
+        enabled: true

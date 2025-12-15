@@ -1,0 +1,63 @@
+=============================================================================
+  STREAMING PLATFORM - Deployed!
+=============================================================================
+
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named: {{ .Release.Name }}
+
+=============================================================================
+  SERVICES
+=============================================================================
+
+1. Kafka:
+   kubectl port-forward svc/{{ .Release.Name }}-kafka 9092:9092
+
+2. Schema Registry:
+   kubectl port-forward svc/{{ .Release.Name }}-schema-registry 8081:8081
+
+3. Debezium (CDC):
+   kubectl port-forward svc/{{ .Release.Name }}-debezium 8083:8083
+
+4. ClickHouse:
+   kubectl port-forward svc/{{ .Release.Name }}-clickhouse 8123:8123
+
+5. PostgreSQL:
+   kubectl port-forward svc/{{ .Release.Name }}-postgresql 5432:5432
+
+6. Grafana:
+   kubectl port-forward svc/{{ .Release.Name }}-grafana 3000:80
+   URL: http://localhost:3000
+   User: {{ .Values.grafana.adminUser }}
+   Pass: {{ .Values.grafana.adminPassword }}
+
+7. Prometheus:
+   kubectl port-forward svc/{{ .Release.Name }}-prometheus-server 9090:80
+
+8. App Metrics:
+   kubectl port-forward svc/{{ .Release.Name }}-app 8000:8000
+
+=============================================================================
+  QUICK START
+=============================================================================
+
+# Check all pods are running
+kubectl get pods -l release={{ .Release.Name }}
+
+# View logs
+kubectl logs -l app={{ .Values.app.name }} -f
+
+# Run health check
+kubectl exec -it deploy/{{ .Release.Name }}-app -- ./streaming-cli health
+
+# Generate test events
+kubectl exec -it deploy/{{ .Release.Name }}-app -- ./streaming-cli generate -n 100
+
+=============================================================================
+  DOCUMENTATION
+=============================================================================
+
+GitHub: https://github.com/mohammedadnansohail1-pixel/streaming-platform
+Docs:   https://github.com/mohammedadnansohail1-pixel/streaming-platform/tree/main/docs
+
+=============================================================================

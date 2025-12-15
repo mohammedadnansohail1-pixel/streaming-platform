@@ -213,7 +213,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 - Building production-grade streaming systems
 - Available for freelance projects
-- [LinkedIn]([https://linkedin.com/in/yourprofile](https://www.linkedin.com/in/adnan21/)) | [Email](mohammedadnansohai11@gmail.com)
+- [LinkedIn]([https://www.linkedin.com/in/adnan21/]) | [Email](mohammedadnansohai11@gmail.com)
 
 ---
 

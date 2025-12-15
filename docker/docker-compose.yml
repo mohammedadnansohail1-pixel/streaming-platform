@@ -66,6 +66,33 @@ services:
       retries: 5
 
   # ===========================================================================
+  # CDC - DEBEZIUM
+  # ===========================================================================
+  debezium:
+    image: debezium/connect:2.5
+    container_name: debezium
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    environment:
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: debezium_configs
+      OFFSET_STORAGE_TOPIC: debezium_offsets
+      STATUS_STORAGE_TOPIC: debezium_statuses
+      BOOTSTRAP_SERVERS: kafka:29092
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+    healthcheck:
+      test: curl -f http://localhost:8083/connectors || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ===========================================================================
   # DATABASES
   # ===========================================================================
   clickhouse:
@@ -91,12 +118,14 @@ services:
     container_name: postgres
     ports:
       - "5432:5432"
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_replication_slots=4", "-c", "max_wal_senders=4"]
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: streaming123
       POSTGRES_DB: streaming
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: pg_isready -U postgres
       interval: 10s

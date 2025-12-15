@@ -249,6 +249,16 @@ def health(domain: str):
     except Exception as e:
         click.echo(f"✗ PostgreSQL failed: {e}")
 
+    # Debezium
+    try:
+        import httpx
+
+        resp = httpx.get("http://localhost:8083/connectors", timeout=5)
+        connectors = resp.json()
+        click.echo(f"✓ Debezium connected ({len(connectors)} connectors)")
+    except Exception as e:
+        click.echo(f"✗ Debezium failed: {e}")
+
     click.echo("")
 
 

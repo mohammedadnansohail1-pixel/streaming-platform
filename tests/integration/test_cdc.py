@@ -112,7 +112,7 @@ class TestCDCIntegration:
         insert_event = None
         timeout = time.time() + 10
 
-        for event in consumer.consume(timeout=1.0, max_messages=50):
+        for event in consumer.consume(timeout=1.0, max_messages=100):
             if event["data"].get("email") == unique_email and event["op"] == "c":
                 insert_event = event
                 break

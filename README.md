@@ -12,15 +12,67 @@
   <img src="docs/images/architecture.png" alt="Architecture" width="800">
 </p>
 
+# Streaming Platform
+
+[![CI](https://github.com/mohammedadnansohail1-pixel/streaming-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/mohammedadnansohail1-pixel/streaming-platform/actions/workflows/ci.yml)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**Production-grade, config-driven streaming data platform with CDC support.**
+
 ## ✨ Features
 
 - **🔧 Config-Driven** - Define domains in YAML, no code changes needed
 - **📊 Real-Time Analytics** - Sub-second aggregations with Spark Structured Streaming
-- **🔄 Schema Evolution** - Avro + Schema Registry for safe schema changes
+- **🔄 CDC (Change Data Capture)** - Capture database changes with Debezium
+- **📋 Schema Evolution** - Avro + Schema Registry for safe schema changes
 - **📈 Full Observability** - Prometheus metrics + Grafana dashboards
 - **🔌 Pluggable Sinks** - ClickHouse, PostgreSQL, extensible base class
 - **🔐 Secure Secrets** - Registry pattern with env/file/vault backends
-- **✅ Production Ready** - 68 unit tests, CI/CD, health checks
+- **✅ Production Ready** - 81 unit tests, CI/CD, health checks
+
+## 🏗️ Architecture
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            DATA SOURCES                                       │
+├──────────────────────────────────┬───────────────────────────────────────────┤
+│         PostgreSQL               │           Synthetic Generator              │
+│         (CDC Source)             │           (Event Generator)                │
+└────────────┬─────────────────────┴───────────────────┬───────────────────────┘
+             │                                         │
+             ▼                                         │
+┌────────────────────────┐                            │
+│       Debezium         │                            │
+│   (Change Data Capture)│                            │
+└────────────┬───────────┘                            │
+             │                                         │
+             ▼                                         ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              KAFKA + SCHEMA REGISTRY                          │
+│                        (Message Broker + Schema Management)                   │
+└────────────────────────────────────┬─────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          SPARK STRUCTURED STREAMING                           │
+│              (Windowed Aggregations, Watermarks, Checkpointing)               │
+└────────────────────────────────────┬─────────────────────────────────────────┘
+                                     │
+                    ┌────────────────┴────────────────┐
+                    ▼                                 ▼
+          ┌─────────────────┐               ┌─────────────────┐
+          │   ClickHouse    │               │   PostgreSQL    │
+          │   (Analytics)   │               │ (Transactional) │
+          └─────────────────┘               └─────────────────┘
+                    │                                 │
+                    └────────────────┬────────────────┘
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                      PROMETHEUS + GRAFANA (Monitoring)                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
 
 ## 🚀 Quick Start
 
@@ -30,7 +82,7 @@
 git clone https://github.com/mohammedadnansohail1-pixel/streaming-platform.git
 cd streaming-platform
 
-# Start all infrastructure
+# Start all infrastructure (Kafka, ClickHouse, PostgreSQL, Debezium, Prometheus, Grafana)
 docker compose -f docker/docker-compose.yml up -d
 
 # Setup Python
@@ -38,15 +90,19 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 
-# Run the demo
-python scripts/test_clickhouse_sink.py
+# Check all services
+./streaming-cli health
 ```
 
-### What You'll See
+### Expected Output
 ```
-✓ Events flowing: Kafka → Spark → ClickHouse
-✓ Real-time aggregations by device type
-✓ Data persisted to ClickHouse
+✓ Config loaded (ecommerce)
+✓ Schemas generated (6 event types)
+✓ Kafka connected (7 topics)
+✓ Schema Registry connected (0 subjects)
+✓ ClickHouse connected
+✓ PostgreSQL connected
+✓ Debezium connected (1 connectors)
 ```
 
 **Service URLs:**
@@ -56,21 +112,7 @@ python scripts/test_clickhouse_sink.py
 | Prometheus | http://localhost:9090 | - |
 | Schema Registry | http://localhost:8081 | - |
 | ClickHouse | http://localhost:8123 | default / streaming123 |
-
-## 🏗️ Architecture
-```
-┌─────────────┐     ┌─────────┐     ┌─────────────────┐     ┌────────────┐
-│  Synthetic  │────▶│  Kafka  │────▶│ Spark Streaming │────▶│ ClickHouse │
-│  Generator  │     │ + Avro  │     │  (Aggregations) │     │ (Analytics)│
-└─────────────┘     └─────────┘     └─────────────────┘     └────────────┘
-       │                 │                   │                     │
-       └─────────────────┴───────────────────┴─────────────────────┘
-                                    │
-                         ┌──────────┴──────────┐
-                         │   Config-Driven     │
-                         │   (YAML + Secrets)  │
-                         └─────────────────────┘
-```
+| Debezium | http://localhost:8083 | - |
 
 ## 📁 Project Structure
 ```
@@ -78,7 +120,9 @@ streaming-platform/
 ├── config/
 │   ├── platform.yaml           # Kafka, Spark, sinks config
 │   └── domains/
-│       └── ecommerce.yaml      # Domain events & aggregations
+│       ├── ecommerce.yaml      # E-commerce events
+│       ├── iot.yaml            # IoT sensor events
+│       └── fintech.yaml        # Financial transactions
 ├── core/
 │   ├── config/                 # Config loader + secret resolution
 │   ├── schema/                 # Avro schema generator
@@ -87,71 +131,69 @@ streaming-platform/
 ├── sources/                    # Kafka producer
 ├── spark/                      # Streaming jobs
 ├── sinks/                      # ClickHouse, PostgreSQL
+├── cdc/                        # Debezium CDC consumer
 ├── monitoring/                 # Prometheus + Grafana
+├── cli/                        # Command-line interface
 ├── docker/                     # All-in-one Docker Compose
-└── tests/                      # 68 unit tests
+└── tests/                      # 81 unit tests
+```
+
+## 🖥️ CLI Commands
+```bash
+# List available domains
+./streaming-cli domains
+
+# Show configuration
+./streaming-cli config --domain ecommerce
+
+# Check all services health
+./streaming-cli health
+
+# Generate and send events to Kafka
+./streaming-cli generate --domain ecommerce --event-type page_view --count 100
+
+# Show Avro schema
+./streaming-cli schema --event-type purchase
+
+# Run Spark streaming job
+./streaming-cli run --domain ecommerce --event-type page_view --aggregation events_per_minute
+```
+
+## 🔄 CDC (Change Data Capture)
+
+Capture real-time database changes with Debezium:
+```bash
+# Test CDC - watch INSERT/UPDATE/DELETE events
+python scripts/test_cdc.py
+```
+
+Output:
+```
+➕ INSERT   | customers    | {'id': 1, 'name': 'Jane Smith', ...}
+📝 UPDATE   | customers    | {'id': 1, 'name': 'Jane Doe', ...}
+➕ INSERT   | orders       | {'id': 1, 'amount_cents': 9999, ...}
+📝 UPDATE   | orders       | {'id': 1, 'status': 'completed', ...}
+❌ DELETE   | orders       | {'id': 1, ...}
 ```
 
 ## 🎯 Use Cases
 
 **E-Commerce**
 ```yaml
-event_types:
-  - page_view, add_to_cart, purchase
-aggregations:
-  - events_per_minute by device_type
-  - revenue_per_hour by currency
+event_types: page_view, add_to_cart, purchase
+aggregations: events_per_minute, revenue_per_hour
 ```
 
 **IoT**
 ```yaml
-event_types:
-  - sensor_reading, alert, device_status
-aggregations:
-  - avg_temperature per 5 minutes
-  - anomaly_count by device_id
+event_types: sensor_reading, alert, device_status
+aggregations: avg_temperature, alerts_by_severity
 ```
 
 **Fintech**
 ```yaml
-event_types:
-  - transaction, login, fraud_alert
-aggregations:
-  - transaction_volume per minute
-  - unique_users per hour
-```
-
-## 📊 Adding a New Domain
-
-No code changes needed! Just create a YAML config:
-```yaml
-# config/domains/gaming.yaml
-domain: gaming
-entity:
-  primary_key: player_id
-
-event_types:
-  - name: player_action
-    attributes:
-      - action_type
-      - game_level
-    dimensions:
-      - platform
-      - region
-
-aggregations:
-  - name: actions_per_minute
-    type: count
-    window:
-      type: tumbling
-      duration: 1 minute
-    group_by:
-      - platform
-```
-
-Then run:
-```python
-config = loader.load(domain="gaming")
+event_types: transaction, login, fraud_alert
+aggregations: transaction_volume, failed_logins
 ```
 
 ## 🛠️ Tech Stack
@@ -161,6 +203,7 @@ config = loader.load(domain="gaming")
 | Message Broker | Apache Kafka 7.5 |
 | Schema Registry | Confluent Schema Registry |
 | Stream Processing | Spark Structured Streaming 3.5 |
+| CDC | Debezium 2.5 |
 | Serialization | Apache Avro |
 | Analytics DB | ClickHouse |
 | Transactional DB | PostgreSQL 16 |
@@ -173,20 +216,19 @@ config = loader.load(domain="gaming")
 |--------|-------|
 | Producer Throughput | 50K events/sec |
 | End-to-End Latency | < 500ms |
+| CDC Latency | < 100ms |
 | Spark Batch Processing | 100K events/sec |
-| ClickHouse Ingestion | 500K rows/sec |
 
 ## 🧪 Testing
 ```bash
-# Run all tests
+# Run all tests (81 tests)
 pytest tests/unit/ -v
 
-# With coverage
-pytest tests/unit/ --cov=core --cov=generators --cov=sources --cov=spark --cov=sinks
+# With coverage (63%)
+pytest tests/unit/ --cov=core --cov=generators --cov=sources --cov=spark --cov=sinks --cov=monitoring
 
 # Lint
-ruff check .
-black --check .
+ruff check . && black --check .
 ```
 
 ## 📚 Documentation
@@ -206,6 +248,8 @@ black --check .
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+
 
 ## 👤 Author
 

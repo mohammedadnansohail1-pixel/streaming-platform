@@ -468,3 +468,67 @@ Sink Error:
 - [Spark Structured Streaming Programming Guide](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html)
 - [ClickHouse Documentation](https://clickhouse.com/docs)
 - [Designing Data-Intensive Applications](https://dataintensive.net/)
+
+---
+
+## CDC (Change Data Capture)
+
+### What is CDC?
+
+CDC captures row-level changes (INSERT, UPDATE, DELETE) from databases and streams them to Kafka in real-time.
+```
+PostgreSQL (WAL) → Debezium → Kafka → Consumer
+```
+
+### Why Debezium?
+
+| Factor | Debezium | Custom Triggers | Polling |
+|--------|----------|-----------------|---------|
+| Latency | ~100ms | ~100ms | Minutes |
+| DB Load | Minimal (reads WAL) | High (triggers) | High (queries) |
+| Reliability | Exactly-once | At-least-once | At-least-once |
+| Schema Changes | Automatic | Manual | Manual |
+
+### Event Structure
+```json
+{
+  "op": "c",           // c=create, u=update, d=delete, r=read
+  "before": null,      // Previous state (null for INSERT)
+  "after": {           // New state (null for DELETE)
+    "id": 1,
+    "name": "John"
+  },
+  "source": {
+    "db": "streaming",
+    "table": "customers",
+    "txId": 123,
+    "lsn": 456
+  }
+}
+```
+
+### Configuration
+
+**PostgreSQL** (logical replication):
+```sql
+ALTER SYSTEM SET wal_level = 'logical';
+ALTER TABLE customers REPLICA IDENTITY FULL;
+```
+
+**Debezium Connector**:
+```json
+{
+  "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+  "topic.prefix": "cdc",
+  "table.include.list": "public.customers,public.orders",
+  "plugin.name": "pgoutput"
+}
+```
+
+### Use Cases
+
+1. **Real-time sync** - Replicate data between databases
+2. **Event sourcing** - Build event log from database changes
+3. **Cache invalidation** - Update caches when data changes
+4. **Audit logging** - Track all data modifications
+5. **Microservices** - Propagate changes across services

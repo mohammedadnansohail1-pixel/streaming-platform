@@ -6,20 +6,6 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Production-grade, config-driven streaming data platform for real-time event processing.**
-
-<p align="center">
-  <img src="docs/images/architecture.png" alt="Architecture" width="800">
-</p>
-
-# Streaming Platform
-
-[![CI](https://github.com/mohammedadnansohail1-pixel/streaming-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/mohammedadnansohail1-pixel/streaming-platform/actions/workflows/ci.yml)
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 **Production-grade, config-driven streaming data platform with CDC support.**
 
 ## ✨ Features
@@ -31,7 +17,7 @@
 - **📈 Full Observability** - Prometheus metrics + Grafana dashboards
 - **🔌 Pluggable Sinks** - ClickHouse, PostgreSQL, extensible base class
 - **🔐 Secure Secrets** - Registry pattern with env/file/vault backends
-- **✅ Production Ready** - 81 unit tests, CI/CD, health checks
+- **✅ Production Ready** - 92 unit tests, CI/CD, health checks
 
 ## 🏗️ Architecture
 ```
@@ -82,7 +68,7 @@
 git clone https://github.com/mohammedadnansohail1-pixel/streaming-platform.git
 cd streaming-platform
 
-# Start all infrastructure (Kafka, ClickHouse, PostgreSQL, Debezium, Prometheus, Grafana)
+# Start all infrastructure
 docker compose -f docker/docker-compose.yml up -d
 
 # Setup Python
@@ -105,7 +91,8 @@ cp .env.example .env
 ✓ Debezium connected (1 connectors)
 ```
 
-**Service URLs:**
+### Service URLs
+
 | Service | URL | Credentials |
 |---------|-----|-------------|
 | Grafana | http://localhost:3000 | admin / streaming123 |
@@ -135,7 +122,7 @@ streaming-platform/
 ├── monitoring/                 # Prometheus + Grafana
 ├── cli/                        # Command-line interface
 ├── docker/                     # All-in-one Docker Compose
-└── tests/                      # 81 unit tests
+└── tests/                      # 92 unit tests
 ```
 
 ## 🖥️ CLI Commands
@@ -178,23 +165,11 @@ Output:
 
 ## 🎯 Use Cases
 
-**E-Commerce**
-```yaml
-event_types: page_view, add_to_cart, purchase
-aggregations: events_per_minute, revenue_per_hour
-```
-
-**IoT**
-```yaml
-event_types: sensor_reading, alert, device_status
-aggregations: avg_temperature, alerts_by_severity
-```
-
-**Fintech**
-```yaml
-event_types: transaction, login, fraud_alert
-aggregations: transaction_volume, failed_logins
-```
+| Domain | Event Types | Aggregations |
+|--------|-------------|--------------|
+| **E-Commerce** | page_view, add_to_cart, purchase | events_per_minute, revenue_per_hour |
+| **IoT** | sensor_reading, alert, device_status | avg_temperature, alerts_by_severity |
+| **Fintech** | transaction, login, fraud_alert | transaction_volume, failed_logins |
 
 ## 🛠️ Tech Stack
 
@@ -221,11 +196,11 @@ aggregations: transaction_volume, failed_logins
 
 ## 🧪 Testing
 ```bash
-# Run all tests (81 tests)
+# Run all tests (92 tests)
 pytest tests/unit/ -v
 
-# With coverage (63%)
-pytest tests/unit/ --cov=core --cov=generators --cov=sources --cov=spark --cov=sinks --cov=monitoring
+# With coverage
+pytest tests/unit/ --cov=core --cov=generators --cov=sources --cov=spark --cov=sinks --cov=monitoring --cov=cdc
 
 # Lint
 ruff check . && black --check .
@@ -249,15 +224,11 @@ ruff check . && black --check .
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-
-
 ## 👤 Author
 
-**Adnan** - Data Engineering
+**Adnan** - Data Engineer
 
-- Building production-grade streaming systems
-- Available for freelance projects
-- [LinkedIn](https://www.linkedin.com/in/adnan21/) | [Email](mohammedadnansohai11@gmail.com)
+Building production-grade streaming systems for real-time analytics.
 
 ---
 

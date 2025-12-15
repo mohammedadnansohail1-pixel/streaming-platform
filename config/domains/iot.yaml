@@ -1,0 +1,184 @@
+# ============================================================
+# IOT DOMAIN CONFIGURATION
+# ============================================================
+domain: iot
+version: "1.0"
+description: Real-time IoT sensor data pipeline
+
+# ============================================================
+# ENTITY
+# ============================================================
+entity:
+  primary_key: device_id
+
+# ============================================================
+# EVENT TYPES
+# ============================================================
+event_types:
+  - name: sensor_reading
+    description: Periodic sensor measurement
+    attributes:
+      - sensor_type
+      - reading_value
+      - unit
+    metrics:
+      - name: temperature
+        type: float
+      - name: humidity
+        type: float
+      - name: pressure
+        type: float
+    dimensions:
+      - location
+      - facility
+      - sensor_model
+
+  - name: device_status
+    description: Device health and connectivity
+    attributes:
+      - status
+      - firmware_version
+      - last_maintenance
+    metrics:
+      - name: battery_level
+        type: float
+      - name: signal_strength
+        type: float
+      - name: uptime_seconds
+        type: long
+    dimensions:
+      - location
+      - facility
+
+  - name: alert
+    description: Threshold breach or anomaly
+    attributes:
+      - alert_type
+      - severity
+      - message
+      - threshold_value
+      - actual_value
+    dimensions:
+      - location
+      - facility
+      - alert_category
+
+  - name: command
+    description: Command sent to device
+    attributes:
+      - command_type
+      - parameters
+      - issued_by
+    dimensions:
+      - location
+      - facility
+
+# ============================================================
+# AGGREGATIONS
+# ============================================================
+aggregations:
+  - name: avg_temperature
+    description: Average temperature per location
+    type: avg
+    field: metrics.temperature
+    window:
+      type: tumbling
+      duration: 5 minutes
+    group_by:
+      - location
+
+  - name: readings_per_minute
+    description: Sensor reading count by facility
+    type: count
+    window:
+      type: tumbling
+      duration: 1 minute
+    group_by:
+      - facility
+
+  - name: alerts_by_severity
+    description: Alert count by severity level
+    type: count
+    window:
+      type: sliding
+      duration: 15 minutes
+      slide: 5 minutes
+    group_by:
+      - severity
+      - alert_category
+
+  - name: active_devices
+    description: Unique active devices per facility
+    type: count_distinct
+    field: entity_id
+    window:
+      type: sliding
+      duration: 10 minutes
+      slide: 1 minute
+    group_by:
+      - facility
+
+  - name: low_battery_devices
+    description: Devices with low battery
+    type: count
+    filter:
+      field: metrics.battery_level
+      operator: lt
+      value: 20
+    window:
+      type: tumbling
+      duration: 1 hour
+    group_by:
+      - facility
+
+# ============================================================
+# SAMPLE DATA
+# ============================================================
+sample_data:
+  sensor_type:
+    - temperature
+    - humidity
+    - pressure
+    - motion
+    - light
+  location:
+    - warehouse-a
+    - warehouse-b
+    - factory-floor
+    - cold-storage
+    - loading-dock
+  facility:
+    - north-plant
+    - south-plant
+    - distribution-center
+  sensor_model:
+    - TempSense-3000
+    - HumidMax-Pro
+    - PressureTech-X1
+    - MotionEye-500
+  status:
+    - online
+    - offline
+    - maintenance
+    - error
+  alert_type:
+    - threshold_breach
+    - anomaly_detected
+    - connection_lost
+    - battery_low
+    - maintenance_due
+  severity:
+    - critical
+    - warning
+    - info
+  alert_category:
+    - environmental
+    - connectivity
+    - hardware
+    - performance
+  command_type:
+    - restart
+    - calibrate
+    - update_firmware
+    - set_threshold
+    - diagnostic

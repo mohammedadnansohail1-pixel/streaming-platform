@@ -1,0 +1,255 @@
+# ============================================================
+# FINTECH DOMAIN CONFIGURATION
+# ============================================================
+domain: fintech
+version: "1.0"
+description: Real-time financial transaction processing
+
+# ============================================================
+# ENTITY
+# ============================================================
+entity:
+  primary_key: account_id
+
+# ============================================================
+# EVENT TYPES
+# ============================================================
+event_types:
+  - name: transaction
+    description: Financial transaction
+    attributes:
+      - transaction_id
+      - merchant_name
+      - merchant_category
+      - description
+    metrics:
+      - name: amount
+        type: money
+      - name: fee
+        type: money
+    dimensions:
+      - transaction_type
+      - currency
+      - country
+      - channel
+
+  - name: login
+    description: Account login attempt
+    attributes:
+      - ip_address
+      - user_agent
+      - session_id
+    dimensions:
+      - login_status
+      - auth_method
+      - device_type
+      - country
+
+  - name: fraud_alert
+    description: Suspected fraudulent activity
+    attributes:
+      - alert_id
+      - transaction_id
+      - reason
+      - model_version
+    metrics:
+      - name: risk_score
+        type: float
+      - name: amount
+        type: money
+    dimensions:
+      - alert_type
+      - severity
+      - country
+
+  - name: account_update
+    description: Account information change
+    attributes:
+      - change_type
+      - old_value
+      - new_value
+      - updated_by
+    dimensions:
+      - update_category
+      - channel
+
+  - name: payment
+    description: Payment initiation
+    attributes:
+      - payment_id
+      - recipient_id
+      - recipient_name
+      - reference
+    metrics:
+      - name: amount
+        type: money
+      - name: fee
+        type: money
+    dimensions:
+      - payment_type
+      - currency
+      - status
+      - country
+
+# ============================================================
+# AGGREGATIONS
+# ============================================================
+aggregations:
+  - name: transaction_volume
+    description: Total transaction amount per minute
+    type: sum
+    field: metrics.amount_cents
+    window:
+      type: tumbling
+      duration: 1 minute
+    group_by:
+      - transaction_type
+      - currency
+
+  - name: transactions_per_minute
+    description: Transaction count by type
+    type: count
+    window:
+      type: tumbling
+      duration: 1 minute
+    group_by:
+      - transaction_type
+      - country
+
+  - name: unique_active_accounts
+    description: Unique accounts per 5 minutes
+    type: count_distinct
+    field: entity_id
+    window:
+      type: sliding
+      duration: 5 minutes
+      slide: 1 minute
+    group_by:
+      - country
+
+  - name: failed_logins
+    description: Failed login attempts
+    type: count
+    filter:
+      field: login_status
+      operator: eq
+      value: failed
+    window:
+      type: tumbling
+      duration: 5 minutes
+    group_by:
+      - country
+      - auth_method
+
+  - name: fraud_alerts_by_severity
+    description: Fraud alerts aggregated by severity
+    type: count
+    window:
+      type: sliding
+      duration: 15 minutes
+      slide: 5 minutes
+    group_by:
+      - severity
+      - alert_type
+
+  - name: avg_transaction_value
+    description: Average transaction value
+    type: avg
+    field: metrics.amount_cents
+    window:
+      type: tumbling
+      duration: 10 minutes
+    group_by:
+      - transaction_type
+      - currency
+
+  - name: high_value_transactions
+    description: Large transaction monitoring
+    type: count
+    filter:
+      field: metrics.amount_cents
+      operator: gt
+      value: 100000  # $1000+
+    window:
+      type: tumbling
+      duration: 1 hour
+    group_by:
+      - country
+      - channel
+
+# ============================================================
+# SAMPLE DATA
+# ============================================================
+sample_data:
+  transaction_type:
+    - purchase
+    - withdrawal
+    - deposit
+    - transfer
+    - refund
+  currency:
+    - USD
+    - EUR
+    - GBP
+    - JPY
+    - CAD
+  country:
+    - US
+    - UK
+    - DE
+    - JP
+    - CA
+    - FR
+  channel:
+    - mobile_app
+    - web
+    - atm
+    - pos_terminal
+    - api
+  merchant_category:
+    - retail
+    - grocery
+    - restaurant
+    - travel
+    - entertainment
+    - utilities
+  login_status:
+    - success
+    - failed
+    - locked
+    - mfa_required
+  auth_method:
+    - password
+    - biometric
+    - mfa
+    - sso
+  device_type:
+    - mobile
+    - desktop
+    - tablet
+  alert_type:
+    - unusual_location
+    - high_amount
+    - velocity
+    - device_change
+    - pattern_mismatch
+  severity:
+    - critical
+    - high
+    - medium
+    - low
+  payment_type:
+    - instant
+    - scheduled
+    - recurring
+    - batch
+  status:
+    - pending
+    - completed
+    - failed
+    - cancelled
+  update_category:
+    - contact_info
+    - security
+    - preferences
+    - limits
